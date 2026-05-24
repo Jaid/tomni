@@ -162,5 +162,5 @@ console.dir(countTokens('mind goblin', {model: ['gpt', 'deepseek']}))
 
 - `sdxl` intentionally implements the shared CLIP BPE core used by SDXL without auto-adding BOS/EOS tokens.
 - GPT uses `tiktoken`’s built-in `o200k_base` implementation, but the upstream encoder payload is still fetched and converted to MessagePack for completeness.
-- Structured tokenizer payloads are emitted into generated modules as base64-encoded `.msgpack.br` blobs and decompressed before use.
+- Structured tokenizer payloads are emitted into generated modules as ASCII85-encoded `.msgpack.br` blobs and decompressed before use.
 - Tokenizer assets are large. That is inherent to exact offline tokenization.

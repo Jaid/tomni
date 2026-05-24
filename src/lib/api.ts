@@ -1,8 +1,8 @@
-import type {ModelSelection} from './modelSelection.ts'
 import type {ModelId} from './models.ts'
+import type {ModelSelection} from './modelSelection.ts'
 
-import {normalizeModelList} from './modelSelection.ts'
 import {modelIds, models} from './models.ts'
+import {normalizeModelList} from './modelSelection.ts'
 import {getTokenizer} from './tokenizers/index.ts'
 
 export type TokenizeResult = Record<ModelId, Array<number>>

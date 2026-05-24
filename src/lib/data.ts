@@ -3,7 +3,7 @@ import type {ModelId} from './models.ts'
 
 import {Unpackr} from 'msgpackr/unpack'
 
-import {decodeBase64} from './modelAssets.ts'
+import {decodeBase85} from './base85Decode.ts'
 import {modelIds} from './models.ts'
 
 export type ModelAssetMap = Partial<Record<ModelId, ModelAssetFiles>>
@@ -67,7 +67,7 @@ const getModelFileBytes = (modelId: ModelId, fileName: string) => {
     binaryCache.set(cacheKey, file)
     return file
   }
-  const decoded = decodeBase64(file)
+  const decoded = decodeBase85(file)
   binaryCache.set(cacheKey, decoded)
   return decoded
 }

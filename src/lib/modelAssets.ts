@@ -1,3 +1,5 @@
+import {decodeBase85} from './base85Decode.ts'
+
 export type EncodedModelAssetFiles = Record<string, string>
 export type ModelAssetFileContent = Uint8Array | string
 export type ModelAssetFiles = Record<string, ModelAssetFileContent>
@@ -21,13 +23,6 @@ const decompressBrotli = async (bytes: Uint8Array) => {
   return new Uint8Array(brotliDecompressSync(bytes))
 }
 
-export const decodeBase64 = (value: string) => {
-  if (typeof Uint8Array.fromBase64 === 'function') {
-    return Uint8Array.fromBase64(value)
-  }
-  return Uint8Array.from(atob(value), character => character.codePointAt(0)!)
-}
-
 export const isCompressedMsgpackFile = (fileName: string) => {
   return fileName.endsWith(compressedMsgpackFileExtension)
 }
@@ -41,7 +36,7 @@ export const normalizeModelAssetFileName = (fileName: string) => {
 
 export const prepareEncodedModelAssets = async (files: EncodedModelAssetFiles): Promise<ModelAssetFiles> => {
   const entries = await Promise.all(Object.entries(files).map(async ([fileName, content]) => {
-    const decodedContent = decodeBase64(content)
+    const decodedContent = decodeBase85(content)
     if (!isCompressedMsgpackFile(fileName)) {
       return [fileName, decodedContent] as const
     }

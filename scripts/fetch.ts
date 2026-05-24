@@ -4,6 +4,7 @@ import {brotliCompressSync, constants as zlibConstants} from 'node:zlib'
 import fs from 'fs-extra'
 import {pack} from 'msgpackr/pack'
 
+import {encodeBase85} from '#src/lib/base85Encode.ts'
 import {modelIds, models} from '#src/lib/models.ts'
 
 const dataFolder = path.resolve(import.meta.dirname, '../temp/data')
@@ -106,11 +107,14 @@ const toGeneratedAssetFileName = (fileName: string) => {
   }
   return fileName
 }
+const quoteTypescriptString = (value: string) => {
+  return `'${value.replaceAll('\\', '\\\\').replaceAll('\'', String.raw`\'`)}'`
+}
 const toAssetModuleSource = (entries: Array<readonly [string, string]>) => {
   return [
     generatedFileHeader,
     'export default {',
-    ...entries.map(([fileName, base64]) => `  ${JSON.stringify(fileName)}: ${JSON.stringify(base64)},`),
+    ...entries.map(([fileName, encoded]) => `  ${JSON.stringify(fileName)}: ${quoteTypescriptString(encoded)},`),
     '} as const',
     '',
   ].join('\n')
@@ -140,8 +144,7 @@ const generateModelAssetModules = async () => {
       if (fileName.endsWith('.msgpack')) {
         fileContent = brotliCompressSync(fileContent, brotliOptions)
       }
-      const base64 = fileContent.toString('base64')
-      return [toGeneratedAssetFileName(fileName), base64] as const
+      return [toGeneratedAssetFileName(fileName), encodeBase85(fileContent)] as const
     }))
     await writeTextFile(path.join(generatedModelAssetsFolder, `${modelId}.ts`), toAssetModuleSource(entries))
   }
