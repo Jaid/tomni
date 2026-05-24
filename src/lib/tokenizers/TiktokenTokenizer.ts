@@ -3,7 +3,7 @@ import type {TiktokenEncoding} from 'tiktoken'
 
 import {get_encoding, Tiktoken} from 'tiktoken'
 
-import {readModelJsonFile, readModelTextFile} from '../data.ts'
+import {readModelMsgpackFile, readModelTextFile} from '../data.ts'
 import {BaseTokenizer} from './base/BaseTokenizer.ts'
 
 type BuiltinTiktokenConfig = {
@@ -21,7 +21,7 @@ export class BuiltinTiktokenTokenizer extends BaseTokenizer<Tiktoken> {
   }
 
   protected override createState() {
-    const config = readModelJsonFile<BuiltinTiktokenConfig>(this.modelId, 'config.json')
+    const config = readModelMsgpackFile<BuiltinTiktokenConfig>(this.modelId, 'config.msgpack')
     return get_encoding(config.encoding)
   }
 
@@ -36,7 +36,7 @@ export class CustomTiktokenTokenizer extends BaseTokenizer<Tiktoken> {
   }
 
   protected override createState() {
-    const config = readModelJsonFile<CustomTiktokenConfig>(this.modelId, 'config.json')
+    const config = readModelMsgpackFile<CustomTiktokenConfig>(this.modelId, 'config.msgpack')
     const model = readModelTextFile(this.modelId, 'tiktoken.model')
     return new Tiktoken(model, config.special_tokens, config.pat_str)
   }

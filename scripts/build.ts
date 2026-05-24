@@ -1,13 +1,12 @@
-import {createRequire} from 'node:module'
 import path from 'node:path'
 
 import fs from 'fs-extra'
 
-const require = createRequire(import.meta.url)
 const rootFolder = path.resolve(import.meta.dirname, '..')
 const entrypoint = path.join(rootFolder, 'src/main.ts')
-const dataFolder = path.join(rootFolder, 'data')
+const generatedAssetsIndexFile = path.join(rootFolder, 'temp/generated/model-assets/index.ts')
 const distFolder = path.join(rootFolder, 'dist')
+const browserDistFolder = path.join(distFolder, 'browser')
 const exists = async (filePath: string) => {
   try {
     await fs.stat(filePath)
@@ -16,27 +15,40 @@ const exists = async (filePath: string) => {
     return false
   }
 }
-if (!await exists(dataFolder)) {
-  throw new Error(`Missing data folder at ${JSON.stringify(dataFolder)}. Run “bun run fetch” first.`)
+if (!await exists(generatedAssetsIndexFile)) {
+  throw new Error(`Missing generated tokenizer assets at ${JSON.stringify(generatedAssetsIndexFile)}. Run “bun run fetch” first.`)
 }
 await fs.rm(distFolder, {
   force: true,
   recursive: true,
 })
 await fs.mkdir(distFolder, {recursive: true})
-const result = await Bun.build({
-  entrypoints: [entrypoint],
-  format: 'esm',
-  outdir: distFolder,
-  target: 'node',
-})
-if (!result.success) {
-  for (const log of result.logs) {
-    console.error(log)
+const buildTargets = [
+  {
+    outdir: distFolder,
+    target: 'bun',
+    title: 'runtime',
+  },
+  {
+    outdir: browserDistFolder,
+    target: 'browser',
+    title: 'browser',
+  },
+] as const
+let outputCount = 0
+for (const buildTarget of buildTargets) {
+  const result = await Bun.build({
+    entrypoints: [entrypoint],
+    format: 'esm',
+    outdir: buildTarget.outdir,
+    target: buildTarget.target,
+  })
+  if (!result.success) {
+    for (const log of result.logs) {
+      console.error(log)
+    }
+    throw new Error(`${buildTarget.title} build failed.`)
   }
-  throw new Error('Build failed.')
+  outputCount += result.outputs.length
 }
-await fs.cp(dataFolder, path.join(distFolder, 'data'), {recursive: true})
-const tiktokenWasmFile = require.resolve('tiktoken/tiktoken_bg.wasm')
-await fs.copyFile(tiktokenWasmFile, path.join(distFolder, 'tiktoken_bg.wasm'))
-console.log(`Built ${result.outputs.length} file${result.outputs.length === 1 ? '' : 's'} into ${distFolder}.`)
+console.log(`Built ${outputCount} file${outputCount === 1 ? '' : 's'} into ${distFolder}.`)

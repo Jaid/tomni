@@ -4,7 +4,7 @@ import {makeEslintConfig} from 'eslint-config-jaid'
 
 const eslintConfig: Array<Linter.Config> = [
   {
-    ignores: ['data/**', 'dist/**', 'private/**'],
+    ignores: ['dist/**', 'private/**', 'temp/**'],
   },
   ...makeEslintConfig(),
 ]

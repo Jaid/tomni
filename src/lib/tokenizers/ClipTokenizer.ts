@@ -1,6 +1,6 @@
 import type {ModelId} from '../models.ts'
 
-import {readModelJsonFile, readModelTextFile} from '../data.ts'
+import {readModelMsgpackFile, readModelTextFile} from '../data.ts'
 import {BaseTokenizer} from './base/BaseTokenizer.ts'
 
 type ClipTokenizerConfig = {
@@ -68,8 +68,8 @@ export class ClipTokenizer extends BaseTokenizer<ClipTokenizerState> {
   }
 
   protected override createState() {
-    const vocabulary = readModelJsonFile<Partial<Record<string, number>>>(this.modelId, 'vocab.json')
-    const tokenizerConfig = readModelJsonFile<ClipTokenizerConfig>(this.modelId, 'tokenizer_config.json')
+    const vocabulary = readModelMsgpackFile<Partial<Record<string, number>>>(this.modelId, 'vocab.msgpack')
+    const tokenizerConfig = readModelMsgpackFile<ClipTokenizerConfig>(this.modelId, 'tokenizer_config.msgpack')
     const specialTokenIds = new Map<string, number>
     const unknownTokenContent = toTokenContent(tokenizerConfig.unk_token) ?? '<|endoftext|>'
     const unknownTokenId = vocabulary[unknownTokenContent]

@@ -17,11 +17,13 @@ Count tokens or inspect token IDs across several modern tokenizer families from 
 ## Highlights
 
 - offline at runtime once the vendored assets are present
+- browser-friendly once bundled
 - exact golden outputs for the core sample fixture
+- MessagePack-compressed structured tokenizer assets
 - sync API for convenience
 - one shared interface for count-oriented and token-ID-oriented usage
-- vendored tokenizer data via `bun run fetch`
-- portable `dist/` builds that include `data/` and `tiktoken_bg.wasm`
+- generated tokenizer assets via `bun run fetch`
+- portable `dist/` builds that bundle tokenizer assets and emit the required WASM files
 
 ## Usage
 
@@ -108,7 +110,9 @@ Exports model metadata, including the original upstream source URLs used by `bun
 
 ## Asset workflow
 
-The repository keeps tokenizer assets in `./data`.
+Raw fetched tokenizer assets are written to `./temp/data`.
+
+`bun run fetch` also generates importable asset modules under `./temp/generated`, which is what the library loads at runtime.
 
 Refresh them with:
 
@@ -124,12 +128,11 @@ bun run build
 
 That produces a `dist/` folder containing:
 
-- bundled JavaScript
-- vendored tokenizer data under `dist/data`
-- `dist/tiktoken_bg.wasm`
+- `dist/main.js` for Bun/runtime usage
+- `dist/browser/main.js` plus emitted WASM assets for browser bundlers
 
 ## Notes
 
 - `sdxl` intentionally implements the shared CLIP BPE core used by SDXL without auto-adding BOS/EOS tokens.
-- GPT uses `tiktoken`’s built-in `o200k_base` implementation, but the raw upstream JSON is still fetched and kept in the repository for completeness.
+- GPT uses `tiktoken`’s built-in `o200k_base` implementation, but the upstream encoder payload is still fetched and converted to MessagePack for completeness.
 - Tokenizer assets are large. That is inherent to exact offline tokenization.
