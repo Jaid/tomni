@@ -80,6 +80,11 @@ const createBrowserConfig = (): RolldownOptions => {
         targetEnv: 'browser',
       }),
     ],
+    resolve: {
+      alias: {
+        tiktoken: path.join(rootFolder, 'src/browser/tiktoken.ts'),
+      },
+    },
   }
 }
 
