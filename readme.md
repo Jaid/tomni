@@ -25,7 +25,7 @@ Count tokens or inspect token IDs across several modern tokenizer families from 
 - sync API for convenience
 - one shared interface for count-oriented and token-ID-oriented usage
 - generated tokenizer assets via `bun run fetch`
-- portable `dist/` builds that bundle tokenizer assets and emit the required WASM files
+- publish-ready browser `dist/` builds that bundle tokenizer assets, emit the required WASM files and include package metadata plus declarations
 
 ## Usage
 
@@ -137,7 +137,7 @@ Refresh them with:
 bun run fetch
 ```
 
-Create a portable runtime bundle with:
+Create a publish-ready browser bundle with:
 
 ```sh
 bun run build
@@ -145,15 +145,15 @@ bun run build
 
 That produces a `dist/` folder containing:
 
-- `dist/main.js` for Bun/runtime usage
-- `dist/browser/main.js` as the lazy browser entry – call `loadModels()` before tokenizing
-- `dist/browser/all.js` as the eager browser entry that preloads every vocabulary
-- emitted chunk files under `dist/browser/vocabulary/` plus the required WASM asset for browser bundlers
+- `dist/main.js` as the lazy browser entry – call `loadModels()` before tokenizing
+- `dist/all.js` as the eager browser entry that preloads every vocabulary
+- emitted chunk files under `dist/vocabulary/` and `dist/chunks/`, plus the required WASM asset for browser bundlers
+- `dist/package.json`, `dist/README.md`, `dist/LICENSE` and declaration files so `dist/` can be published on its own
 
 Example lazy browser usage:
 
 ```ts
-import {countTokens, loadModels} from './dist/browser/main.js'
+import {countTokens, loadModels} from './dist/main.js'
 
 await loadModels(['gpt', 'deepseek'])
 console.dir(countTokens('mind goblin', {model: ['gpt', 'deepseek']}))

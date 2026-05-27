@@ -9,12 +9,11 @@ import {modelIds} from './src/lib/models.ts'
 
 const rootFolder = import.meta.dirname
 const distFolder = path.join(rootFolder, 'dist')
-const browserDistFolder = path.join(distFolder, 'browser')
-const runtimeEntryFile = path.join(rootFolder, 'src/main.ts')
 const browserEntryFiles = {
   all: path.join(rootFolder, 'src/browser/all.ts'),
   main: path.join(rootFolder, 'src/browser/main.ts'),
 } as const
+const sharedChunkFolderName = 'chunks'
 const browserVocabularyPattern = new RegExp(String.raw`/src/browser/vocabulary/(?<modelId>${modelIds.join('|')})\.ts$`, 'u')
 const normalizeModuleId = (moduleId: string) => {
   return moduleId.replaceAll('\\', '/')
@@ -44,19 +43,6 @@ const createBaseConfig = (): Omit<RolldownOptions, 'output'> & {output: OutputOp
     output: createBaseOutput(),
   }
 }
-const createRuntimeConfig = (): RolldownOptions => {
-  const config = createBaseConfig()
-  return {
-    ...config,
-    input: runtimeEntryFile,
-    output: {
-      ...config.output,
-      dir: distFolder,
-      entryFileNames: 'main.js',
-    },
-    platform: 'node',
-  }
-}
 const createBrowserConfig = (): RolldownOptions => {
   const config = createBaseConfig()
   return {
@@ -66,12 +52,15 @@ const createBrowserConfig = (): RolldownOptions => {
       ...config.output,
       entryFileNames: '[name].js',
       chunkFileNames: chunkInfo => {
+        if (!chunkInfo.name.startsWith('vocabulary/')) {
+          return `${sharedChunkFolderName}/${chunkInfo.name}.js`
+        }
         return `${chunkInfo.name}.js`
       },
       codeSplitting: {
         groups: [vocabularyCodeSplittingGroup],
       },
-      dir: browserDistFolder,
+      dir: distFolder,
     },
     platform: 'browser',
     plugins: [
@@ -88,7 +77,4 @@ const createBrowserConfig = (): RolldownOptions => {
   }
 }
 
-export default defineConfig([
-  // createRuntimeConfig(),
-  createBrowserConfig(),
-])
+export default defineConfig([createBrowserConfig()])

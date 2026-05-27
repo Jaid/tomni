@@ -1,5 +1,5 @@
 {
-  "name": "tomni",
+  "name": "token-vocabs",
   "version": "0.2.1",
   "type": "module",
   "description": "Count and inspect token IDs across several modern tokenizer families offline.",
@@ -20,7 +20,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jaid/tomni.git"
+    "url": "git+https://github.com/Jaid/token-vocabs.git"
   },
   "exports": {
     ".": {
