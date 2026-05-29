@@ -1,7 +1,7 @@
+import type {TiktokenEncoding} from '#tiktoken'
 import type {ModelId} from '../models.ts'
-import type {TiktokenEncoding} from 'tiktoken'
 
-import {get_encoding, Tiktoken} from 'tiktoken'
+import {get_encoding, Tiktoken} from '#tiktoken'
 
 import {readModelMsgpackFile, readModelTextFile} from '../data.ts'
 import {getRequiredMapValue, toPlainObject} from '../structuredData.ts'
