@@ -1,4 +1,4 @@
-export type ModelId = 'deepseek' | 'gemma' | 'glm' | 'gpt' | 'kimi' | 'mimo' | 'minimax' | 'qwen' | 'sdxl'
+export type ModelId = 'deepseek' | 'gemma' | 'glm' | 'gpt' | 'hy' | 'kimi' | 'mimo' | 'minimax' | 'qwen' | 'sdxl' | 'step'
 
 export type ModelDefinition = BuiltinTiktokenModelDefinition | ClipBpeModelDefinition | CustomTiktokenModelDefinition | HuggingFaceModelDefinition
 
@@ -27,6 +27,7 @@ type CustomTiktokenModelDefinition = BaseModelDefinition & {
 type HuggingFaceModelDefinition = BaseModelDefinition & {
   kind: 'huggingface'
   source: {
+    specialTokensMapUrl?: string
     tokenizerConfigUrl: string
     tokenizerJsonUrl: string
   }
@@ -125,6 +126,25 @@ export const models = {
       tokenizerJsonUrl: 'https://huggingface.co/MiniMaxAI/MiniMax-M2.7/resolve/main/tokenizer.json',
     },
     title: 'MiniMax M2.7',
+  },
+  hy: {
+    kind: 'huggingface',
+    openrouter: 'tencent/hy3-preview',
+    title: 'Hy3 Preview',
+    source: {
+      tokenizerConfigUrl: 'https://huggingface.co/tencent/Hy3-preview/resolve/main/tokenizer_config.json',
+      tokenizerJsonUrl: 'https://huggingface.co/tencent/Hy3-preview/resolve/main/tokenizer.json',
+    },
+  },
+  step: {
+    kind: 'huggingface',
+    openrouter: 'stepfun/step-3.7-flash',
+    source: {
+      specialTokensMapUrl: 'https://huggingface.co/stepfun-ai/Step-3.7-Flash/resolve/main/special_tokens_map.json',
+      tokenizerConfigUrl: 'https://huggingface.co/stepfun-ai/Step-3.7-Flash/resolve/main/tokenizer_config.json',
+      tokenizerJsonUrl: 'https://huggingface.co/stepfun-ai/Step-3.7-Flash/resolve/main/tokenizer.json',
+    },
+    title: 'Step 3.7 Flash',
   },
 } as const satisfies Record<ModelId, ModelDefinition>
 

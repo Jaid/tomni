@@ -1,9 +1,12 @@
+import type {ModelId} from '#src/main.ts'
+
 import {expect, test} from 'bun:test'
 
 import tokenize, {count, countLoaded, free, load, modelIds, models, tokenizeLoaded, tokenize as tokenizeNamed} from '#src/main.ts'
 
+const expectedModelIds: Array<ModelId> = ['gpt', 'gemma', 'qwen', 'kimi', 'deepseek', 'mimo', 'sdxl', 'glm', 'minimax', 'hy', 'step']
 const sampleText = 'mind goblin'
-const expectedTokenIds = {
+const expectedTokenIds: Record<ModelId, Array<number>> = {
   gpt: [77_021, 18_778, 4724],
   gemma: [24_447, 218_798],
   qwen: [36_475, 338, 45_491],
@@ -13,7 +16,9 @@ const expectedTokenIds = {
   sdxl: [2575, 26_223],
   glm: [37_528, 342, 46_771],
   minimax: [68_201, 113_859, 259],
-} as const
+  hy: [67_975, 964, 3371, 245],
+  step: [60_514, 807, 3778, 261],
+}
 const textEncoder = new TextEncoder
 const denormalizedSdxlInput = ' MIND\tGoblin '
 const normalizedSdxlInput = 'mind goblin'
@@ -21,7 +26,7 @@ const invalidUtf8Bytes = Uint8Array.of(0xFF)
 const sampleTextBytes = textEncoder.encode(sampleText)
 const denormalizedSdxlInputBytes = textEncoder.encode(denormalizedSdxlInput)
 const normalizedSdxlInputBytes = textEncoder.encode(normalizedSdxlInput)
-const expectedTokenEntries = Object.entries(expectedTokenIds)
+const expectedTokenEntries = Object.entries(expectedTokenIds) as Array<[ModelId, Array<number>]>
 const getErrorMessage = async (job: () => unknown) => {
   try {
     await job()
@@ -31,7 +36,7 @@ const getErrorMessage = async (job: () => unknown) => {
   return ''
 }
 test('exports the documented models and async default export', () => {
-  expect(modelIds).toEqual(['gpt', 'gemma', 'qwen', 'kimi', 'deepseek', 'mimo', 'sdxl', 'glm', 'minimax'])
+  expect(modelIds).toEqual(expectedModelIds)
   expect(Object.keys(models)).toEqual(modelIds)
   expect(tokenizeNamed).toBe(tokenize)
 })
@@ -53,18 +58,18 @@ test('async tokenize() and count() auto-load and match the golden fixtures for a
   free()
   const broaderText = 'Hello, world! 你好 123'
   for (const [modelId, tokenIds] of expectedTokenEntries) {
-    const tokenization = await tokenize(sampleText, modelId as keyof typeof expectedTokenIds)
+    const tokenization = await tokenize(sampleText, modelId)
     expect(tokenization.tokens).toEqual(tokenIds)
-    expect(tokenizeLoaded(sampleText, modelId as keyof typeof expectedTokenIds).tokens).toEqual(tokenIds)
-    expect(await count(sampleText, modelId as keyof typeof expectedTokenIds)).toBe(tokenIds.length)
-    expect(countLoaded(sampleText, modelId as keyof typeof expectedTokenIds)).toBe(tokenIds.length)
-    const broaderTokenization = await tokenize(broaderText, modelId as keyof typeof expectedTokenIds)
-    expect(await count(broaderText, modelId as keyof typeof expectedTokenIds)).toBe(broaderTokenization.tokens.length)
-    expect(await tokenize('', modelId as keyof typeof expectedTokenIds)).toEqual({
+    expect(tokenizeLoaded(sampleText, modelId).tokens).toEqual(tokenIds)
+    expect(await count(sampleText, modelId)).toBe(tokenIds.length)
+    expect(countLoaded(sampleText, modelId)).toBe(tokenIds.length)
+    const broaderTokenization = await tokenize(broaderText, modelId)
+    expect(await count(broaderText, modelId)).toBe(broaderTokenization.tokens.length)
+    expect(await tokenize('', modelId)).toEqual({
       offsets: [],
       tokens: [],
     })
-    expect(await count('', modelId as keyof typeof expectedTokenIds)).toBe(0)
+    expect(await count('', modelId)).toBe(0)
   }
 }, 30_000)
 test('load() preloads specific models and supports single-model plus multi-model selections', async () => {

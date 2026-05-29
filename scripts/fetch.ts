@@ -1,3 +1,5 @@
+import type {ModelDefinition, ModelId} from '#src/lib/models.ts'
+
 import path from 'node:path'
 import {brotliCompressSync, constants as zlibConstants} from 'node:zlib'
 
@@ -15,7 +17,12 @@ type JsonObject = {[key: string]: JsonValue}
 type JsonValue = JsonArray | JsonObject | JsonPrimitive
 
 type MessagePackPack = (value: unknown) => Uint8Array
+type BuiltinTiktokenModelDefinition = Extract<ModelDefinition, {kind: 'tiktoken-builtin'}>
+type CustomTiktokenModelDefinition = Extract<ModelDefinition, {kind: 'tiktoken-custom'}>
+type HuggingFaceModelDefinition = Extract<ModelDefinition, {kind: 'huggingface'}>
+type ClipBpeModelDefinition = Extract<ModelDefinition, {kind: 'clip-bpe'}>
 
+const undefinedJsonValue = undefined as JsonValue | undefined
 const packMessagePack = pack as unknown as MessagePackPack
 const isJsonObject = (value: unknown): value is JsonObject => {
   return !!value && typeof value === 'object' && !Array.isArray(value)
@@ -112,8 +119,8 @@ const generateModelAssetBundles = async () => {
     await writeBinaryFile(path.join(generatedModelAssetsFolder, `${modelId}.msgpack.br`), brotliCompressSync(packMessagePack(bundledFiles), brotliOptions))
   }
 }
-const fetchBuiltinTiktokenModel = async (modelId: 'gpt') => {
-  const {encoding, source} = models[modelId]
+const fetchBuiltinTiktokenModel = async (modelId: ModelId, model: BuiltinTiktokenModelDefinition) => {
+  const {encoding, source} = model
   const modelFolder = path.join(dataFolder, modelId)
   await ensureFolder(modelFolder)
   await writeMessagePackFile(path.join(modelFolder, 'config.msgpack'), {
@@ -121,8 +128,8 @@ const fetchBuiltinTiktokenModel = async (modelId: 'gpt') => {
   })
   await writeMessagePackFile(path.join(modelFolder, 'o200k_base.msgpack'), await fetchJson(source.encodingJsonUrl))
 }
-const fetchCustomTiktokenModel = async (modelId: 'kimi') => {
-  const {source} = models[modelId]
+const fetchCustomTiktokenModel = async (modelId: ModelId, model: CustomTiktokenModelDefinition) => {
+  const {source} = model
   const modelFolder = path.join(dataFolder, modelId)
   await ensureFolder(modelFolder)
   const [modelFile, tokenizerConfig, tokenizerImplementation]: [string, JsonValue, string] = await Promise.all([
@@ -145,54 +152,61 @@ const fetchCustomTiktokenModel = async (modelId: 'kimi') => {
     writeTextFile(path.join(modelFolder, 'tokenization_kimi.py'), tokenizerImplementation),
   ])
 }
-const fetchHuggingFaceModel = async (modelId: Exclude<typeof modelIds[number], 'gpt' | 'kimi' | 'sdxl'>) => {
-  const {source} = models[modelId]
+const fetchHuggingFaceModel = async (modelId: ModelId, model: HuggingFaceModelDefinition) => {
+  const {source} = model
   const modelFolder = path.join(dataFolder, modelId)
   await ensureFolder(modelFolder)
-  const [tokenizer, tokenizerConfig]: [JsonValue, JsonValue] = await Promise.all([
+  const [tokenizer, tokenizerConfig, specialTokensMap]: [JsonValue, JsonValue, JsonValue | undefined] = await Promise.all([
     fetchJson(source.tokenizerJsonUrl),
     fetchJson(source.tokenizerConfigUrl),
+    source.specialTokensMapUrl ? fetchJson(source.specialTokensMapUrl) : Promise.resolve(undefinedJsonValue),
   ])
-  await Promise.all([
+  const tasks = [
     writeMessagePackFile(path.join(modelFolder, 'tokenizer.msgpack'), tokenizer),
     writeMessagePackFile(path.join(modelFolder, 'tokenizer_config.msgpack'), tokenizerConfig),
-  ])
+  ]
+  if (specialTokensMap !== undefined) {
+    tasks.push(writeMessagePackFile(path.join(modelFolder, 'special_tokens_map.msgpack'), specialTokensMap))
+  }
+  await Promise.all(tasks)
 }
-const fetchClipBpeModel = async (modelId: 'sdxl') => {
-  const {source} = models[modelId]
+const fetchClipBpeModel = async (modelId: ModelId, model: ClipBpeModelDefinition) => {
+  const {source} = model
   const modelFolder = path.join(dataFolder, modelId)
   await ensureFolder(modelFolder)
-  const [vocabulary, merges, tokenizerConfig, specialTokensMap]: [JsonValue, string, JsonValue, JsonValue] = await Promise.all([
+  const [vocabulary, merges, tokenizerConfig, specialTokensMap]: [JsonValue, string, JsonValue, JsonValue | undefined] = await Promise.all([
     fetchJson(source.vocabUrl),
     fetchText(source.mergesUrl),
     fetchJson(source.tokenizerConfigUrl),
-    fetchJson(source.specialTokensMapUrl),
+    source.specialTokensMapUrl ? fetchJson(source.specialTokensMapUrl) : Promise.resolve(undefinedJsonValue),
   ])
   const tasks = [
     writeMessagePackFile(path.join(modelFolder, 'vocab.msgpack'), vocabulary),
     writeTextFile(path.join(modelFolder, 'merges.txt'), merges),
     writeMessagePackFile(path.join(modelFolder, 'tokenizer_config.msgpack'), tokenizerConfig),
-    writeMessagePackFile(path.join(modelFolder, 'special_tokens_map.msgpack'), specialTokensMap),
   ]
+  if (specialTokensMap !== undefined) {
+    tasks.push(writeMessagePackFile(path.join(modelFolder, 'special_tokens_map.msgpack'), specialTokensMap))
+  }
   await Promise.all(tasks)
 }
 const fetchModel = async (modelId: typeof modelIds[number]) => {
   const model = models[modelId]
   switch (model.kind) {
     case 'tiktoken-builtin': {
-      await fetchBuiltinTiktokenModel(modelId)
+      await fetchBuiltinTiktokenModel(modelId, model)
       return
     }
     case 'tiktoken-custom': {
-      await fetchCustomTiktokenModel(modelId)
+      await fetchCustomTiktokenModel(modelId, model)
       return
     }
     case 'huggingface': {
-      await fetchHuggingFaceModel(modelId)
+      await fetchHuggingFaceModel(modelId, model)
       return
     }
     case 'clip-bpe': {
-      await fetchClipBpeModel(modelId)
+      await fetchClipBpeModel(modelId, model)
     }
   }
 }

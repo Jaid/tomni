@@ -13,6 +13,8 @@ Count tokens or inspect token IDs across several modern tokenizer families from 
 - Stable Diffusion XL
 - GLM 5.1
 - MiniMax M2.7
+- Hy3 Preview
+- Step 3.7 Flash
 
 ## Highlights
 

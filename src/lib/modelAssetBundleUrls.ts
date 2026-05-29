@@ -10,4 +10,6 @@ export const modelAssetBundleUrls = {
   sdxl: new URL('../../temp/generated/model-assets/sdxl.msgpack.br', import.meta.url),
   glm: new URL('../../temp/generated/model-assets/glm.msgpack.br', import.meta.url),
   minimax: new URL('../../temp/generated/model-assets/minimax.msgpack.br', import.meta.url),
+  hy: new URL('../../temp/generated/model-assets/hy.msgpack.br', import.meta.url),
+  step: new URL('../../temp/generated/model-assets/step.msgpack.br', import.meta.url),
 } as const satisfies Record<ModelId, URL>
