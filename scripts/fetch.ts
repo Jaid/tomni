@@ -99,11 +99,27 @@ const getSpecialTokensFromTokenizerConfig = (tokenizerConfig: JsonObject) => {
   }
   return specialTokens
 }
-const brotliOptions = {
-  params: {
-    [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_GENERIC,
-    [zlibConstants.BROTLI_PARAM_QUALITY]: zlibConstants.BROTLI_MAX_QUALITY,
-  },
+const brotliWindowSizes = [22, 23, 24] as const
+const compressWithBestBrotliWindow = (content: Uint8Array) => {
+  let bestCompressedContent: Uint8Array | undefined
+  let bestWindowSize = Number.POSITIVE_INFINITY
+  for (const windowSize of brotliWindowSizes) {
+    const compressedContent = brotliCompressSync(content, {
+      params: {
+        [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_GENERIC,
+        [zlibConstants.BROTLI_PARAM_QUALITY]: zlibConstants.BROTLI_MAX_QUALITY,
+        [zlibConstants.BROTLI_PARAM_LGWIN]: windowSize,
+      },
+    })
+    if (!bestCompressedContent || compressedContent.byteLength < bestCompressedContent.byteLength || compressedContent.byteLength === bestCompressedContent.byteLength && windowSize < bestWindowSize) {
+      bestCompressedContent = compressedContent
+      bestWindowSize = windowSize
+    }
+  }
+  if (!bestCompressedContent) {
+    throw new Error('Could not produce a Brotli-compressed tokenizer asset bundle.')
+  }
+  return bestCompressedContent
 }
 const getBundledModelFileNames = (model: ModelDefinition) => {
   switch (model.kind) {
@@ -130,7 +146,7 @@ const generateModelAssetBundles = async () => {
       const filePath = path.join(modelFolder, fileName)
       return [fileName, new Uint8Array(await fs.readFile(filePath))] as const
     })))
-    await writeBinaryFile(path.join(generatedModelAssetsFolder, `${modelId}.bin`), brotliCompressSync(packMessagePack(bundledFiles), brotliOptions))
+    await writeBinaryFile(path.join(generatedModelAssetsFolder, `${modelId}.bin`), compressWithBestBrotliWindow(packMessagePack(bundledFiles)))
   }
 }
 const fetchBuiltinTiktokenModel = async (modelId: ModelId, model: BuiltinTiktokenModelDefinition) => {
