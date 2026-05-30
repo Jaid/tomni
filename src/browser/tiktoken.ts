@@ -1,7 +1,5 @@
-import type {TiktokenEncoding} from 'tiktoken/init'
-
-import {get_encoding, init, Tiktoken} from 'tiktoken/init'
-import tiktokenWasmUrl from 'tiktoken/tiktoken_bg.wasm?url'
+import {init, Tiktoken} from 'tiktoken/lite/init'
+import tiktokenWasmUrl from 'tiktoken/lite/tiktoken_bg.wasm?url'
 
 type TiktokenInitImports = Parameters<Parameters<typeof init>[0]>[0]
 type WasmImports = Parameters<typeof WebAssembly.instantiate>[1]
@@ -26,5 +24,4 @@ const initializeTiktoken = async () => {
 }
 await initializeTiktoken()
 
-export {get_encoding, Tiktoken}
-export type {TiktokenEncoding}
+export {Tiktoken}

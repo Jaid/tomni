@@ -183,6 +183,6 @@ console.dir(countLoaded('mind goblin', 'deepseek'))
 ## Notes
 
 - `sdxl` intentionally implements the shared CLIP BPE core used by SDXL without auto-adding BOS/EOS tokens.
-- GPT uses `tiktoken`’s built-in `o200k_base` implementation, but the upstream encoder payload is still fetched and converted to MessagePack for completeness.
+- GPT uses `tiktoken` lite plus a vendored `o200k_base` model string, so the browser WASM stays lean and the vocabulary still lives in the regular per-model asset bundle.
 - Structured tokenizer payloads are stored inside per-model `.bin` bundles and decompressed after loading.
 - Tokenizer assets are large. That is inherent to exact offline tokenization.

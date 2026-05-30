@@ -4,7 +4,7 @@ import type {RawTokenizeResult, TokenizeInput} from '../tokenization.ts'
 import {models} from '../models.ts'
 import {ClipTokenizer} from './ClipTokenizer.ts'
 import {HuggingFaceTokenizer} from './HuggingFaceTokenizer.ts'
-import {BuiltinTiktokenTokenizer, CustomTiktokenTokenizer} from './TiktokenTokenizer.ts'
+import {TiktokenTokenizer} from './TiktokenTokenizer.ts'
 
 type TokenizerLike = {
   encode: (input: TokenizeInput) => Array<number>
@@ -24,11 +24,11 @@ export const getTokenizer = (modelId: ModelId) => {
   let tokenizer: TokenizerLike
   switch (model.kind) {
     case 'tiktoken-builtin': {
-      tokenizer = new BuiltinTiktokenTokenizer(modelId)
+      tokenizer = new TiktokenTokenizer(modelId)
       break
     }
     case 'tiktoken-custom': {
-      tokenizer = new CustomTiktokenTokenizer(modelId)
+      tokenizer = new TiktokenTokenizer(modelId)
       break
     }
     case 'huggingface': {

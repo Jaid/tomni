@@ -1,13 +1,18 @@
-import type {TiktokenEncoding} from '#tiktoken'
 import type {ModelId} from '../models.ts'
 
-import {get_encoding, Tiktoken} from '#tiktoken'
+import {Tiktoken} from '#tiktoken'
 
 import {readModelMsgpackFile, readModelTextFile} from '../data.ts'
 import {getRequiredMapValue, toPlainObject} from '../structuredData.ts'
 import {toRawTokenizeResultFromTokenByteLengths} from '../tokenization.ts'
 import {BaseTokenizer} from './base/BaseTokenizer.ts'
 
+const createTiktokenState = (modelId: ModelId) => {
+  const config = readModelMsgpackFile<Map<string, unknown>>(modelId, 'config.msgpack')
+  const model = readModelTextFile(modelId, 'tiktoken.model')
+  const specialTokens = toPlainObject(getRequiredMapValue<Map<string, unknown>>(config, 'special_tokens')) as Record<string, number>
+  return new Tiktoken(model, specialTokens, getRequiredMapValue<string>(config, 'pat_str'))
+}
 abstract class BaseTiktokenTokenizer extends BaseTokenizer<Tiktoken> {
   protected override disposeState(state: Tiktoken) {
     state.free()
@@ -19,31 +24,13 @@ abstract class BaseTiktokenTokenizer extends BaseTokenizer<Tiktoken> {
   }
 }
 
-export class BuiltinTiktokenTokenizer extends BaseTiktokenTokenizer {
+export class TiktokenTokenizer extends BaseTiktokenTokenizer {
   constructor(readonly modelId: ModelId) {
     super()
   }
 
   protected override createState() {
-    const config = readModelMsgpackFile<Map<string, unknown>>(this.modelId, 'config.msgpack')
-    return get_encoding(getRequiredMapValue<TiktokenEncoding>(config, 'encoding'))
-  }
-
-  protected override encodeWithState(text: string, state: Tiktoken) {
-    return [...state.encode(text)]
-  }
-}
-
-export class CustomTiktokenTokenizer extends BaseTiktokenTokenizer {
-  constructor(readonly modelId: ModelId) {
-    super()
-  }
-
-  protected override createState() {
-    const config = readModelMsgpackFile<Map<string, unknown>>(this.modelId, 'config.msgpack')
-    const model = readModelTextFile(this.modelId, 'tiktoken.model')
-    const specialTokens = toPlainObject(getRequiredMapValue<Map<string, unknown>>(config, 'special_tokens')) as Record<string, number>
-    return new Tiktoken(model, specialTokens, getRequiredMapValue<string>(config, 'pat_str'))
+    return createTiktokenState(this.modelId)
   }
 
   protected override encodeWithState(text: string, state: Tiktoken) {

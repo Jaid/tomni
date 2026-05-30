@@ -8,13 +8,21 @@ import {pack} from 'msgpackr/pack'
 
 import {modelIds, models} from '#src/lib/models.ts'
 
+import {tokenizerAssetVersion} from './lib/tokenizerAssetVersion.ts'
+
 const dataFolder = path.resolve(import.meta.dirname, '../temp/data')
 const generatedModelAssetsFolder = path.resolve(import.meta.dirname, '../temp/generated/model-assets')
+const generatedAssetVersionFile = path.join(generatedModelAssetsFolder, '_version.txt')
 
 type JsonPrimitive = boolean | number | string | null
 type JsonArray = Array<JsonValue>
 type JsonObject = {[key: string]: JsonValue}
 type JsonValue = JsonArray | JsonObject | JsonPrimitive
+type TiktokenEncodingJson = {
+  bpe_ranks: string
+  pat_str: string
+  special_tokens: JsonObject
+}
 
 type MessagePackPack = (value: unknown) => Uint8Array
 type BuiltinTiktokenModelDefinition = Extract<ModelDefinition, {kind: 'tiktoken-builtin'}>
@@ -28,6 +36,12 @@ const isJsonObject = (value: unknown): value is JsonObject => {
 }
 const getJsonEntries = (value: JsonObject) => {
   return Object.entries(value)
+}
+const isTiktokenEncodingJson = (value: JsonValue): value is TiktokenEncodingJson => {
+  if (!isJsonObject(value)) {
+    return false
+  }
+  return typeof value.bpe_ranks === 'string' && typeof value.pat_str === 'string' && isJsonObject(value.special_tokens)
 }
 const ensureFolder = async (folder: string) => {
   await fs.mkdir(folder, {recursive: true})
@@ -124,7 +138,7 @@ const compressWithBestBrotliWindow = (content: Uint8Array) => {
 const getBundledModelFileNames = (model: ModelDefinition) => {
   switch (model.kind) {
     case 'tiktoken-builtin': {
-      return ['config.msgpack']
+      return ['config.msgpack', 'tiktoken.model']
     }
     case 'tiktoken-custom': {
       return ['config.msgpack', 'tiktoken.model']
@@ -148,14 +162,23 @@ const generateModelAssetBundles = async () => {
     })))
     await writeBinaryFile(path.join(generatedModelAssetsFolder, `${modelId}.bin`), compressWithBestBrotliWindow(packMessagePack(bundledFiles)))
   }
+  await writeTextFile(generatedAssetVersionFile, `${tokenizerAssetVersion}\n`)
 }
 const fetchBuiltinTiktokenModel = async (modelId: ModelId, model: BuiltinTiktokenModelDefinition) => {
-  const {encoding} = model
+  const {source} = model
   const modelFolder = path.join(dataFolder, modelId)
   await ensureFolder(modelFolder)
-  await writeMessagePackFile(path.join(modelFolder, 'config.msgpack'), {
-    encoding,
-  })
+  const encodingJson = await fetchJson(source.encodingJsonUrl)
+  if (!isTiktokenEncodingJson(encodingJson)) {
+    throw new TypeError(`Expected ${JSON.stringify(source.encodingJsonUrl)} to expose a tiktoken encoding JSON payload.`)
+  }
+  await Promise.all([
+    writeMessagePackFile(path.join(modelFolder, 'config.msgpack'), {
+      pat_str: encodingJson.pat_str,
+      special_tokens: encodingJson.special_tokens,
+    }),
+    writeTextFile(path.join(modelFolder, 'tiktoken.model'), encodingJson.bpe_ranks),
+  ])
 }
 const fetchCustomTiktokenModel = async (modelId: ModelId, model: CustomTiktokenModelDefinition) => {
   const {source} = model
